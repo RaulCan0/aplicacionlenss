@@ -1,0 +1,165 @@
+import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+
+/// Datos individuales de cada burbuja
+class ChartPrincipios {
+  final double x; // Promedio: 0.0 - 5.0
+  final double y; // Índice del principio: 1 - 10
+  final Color color;
+  final String nombreSerie;
+  final String nombrePrincipios;
+  final double radius;
+
+  const ChartPrincipios({
+    required this.x,
+    required this.y,
+    required this.color,
+    required this.nombreSerie,
+    required this.nombrePrincipios,
+    required this.radius,
+    required String title,
+  });
+}
+
+/// Gráfico de burbujas (scatter) con interacción táctil
+class ScatterBubbleChart extends StatelessWidget {
+  final List<ChartPrincipios> datosGraficoPrincipios;
+  final bool isDetail;
+
+  // Lista estática de nombres de principios
+  static const List<String> nombrePrincipios = [
+    'Respetar a Cada Individuo',
+    'Liderar con Humildad',
+    'Buscar la Perfección',
+    'Abrazar el Pensamiento Científico',
+    'Enfocarse en el Proceso',
+    'Asegurar la Calidad en la Fuente',
+    'Mejorar el Flujo y Jalón de Valor',
+    'Pensar Sistémicamente',
+    'Crear Constancia de Propósito',
+    'Crear Valor para el Cliente',
+  ];
+
+  const ScatterBubbleChart({
+    super.key,
+    required this.datosGraficoPrincipios,
+    this.isDetail = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (datosGraficoPrincipios.isEmpty) {
+      return const Center(
+        child: Text(
+          'No hay datos disponibles para mostrar.',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+      );
+    }
+
+    const minX = 0.0;
+    const maxX = 5.0;
+    const minY = 1.0;
+    const maxY = 10.0;
+
+    return Column(
+      children: [
+        Expanded(
+          child: ScatterChart(
+            ScatterChartData(
+              minX: minX,
+              maxX: maxX,
+              minY: minY,
+              maxY: maxY,
+              gridData: FlGridData(show: true),
+              borderData: FlBorderData(
+                show: true,
+                border: const Border(
+                  bottom: BorderSide(color: Colors.black, width: 2),
+                  left: BorderSide(color: Colors.black, width: 2),
+                  right: BorderSide(color: Colors.transparent),
+                  top: BorderSide(color: Colors.transparent),
+                ),
+              ),
+              titlesData: FlTitlesData(
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    interval: 1,
+                    reservedSize:
+                        220, // Aumentar espacio para nombres completos
+                    getTitlesWidget: (value, meta) {
+                      final idx = value.toInt();
+                      if (idx >= 1 && idx <= nombrePrincipios.length) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: SizedBox(
+                            width: 200, // Ancho fijo para el texto
+                            child: Text(
+                              nombrePrincipios[idx - 1],
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.black,
+                              ),
+                              textAlign: TextAlign.right,
+                              maxLines: 2, // Permitir hasta 2 líneas
+                              overflow: TextOverflow
+                                  .visible, // Mostrar texto completo
+                            ),
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    interval: 0.5,
+                    getTitlesWidget: (value, meta) => Text(
+                      value.toStringAsFixed(1),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Colors.black,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+                topTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+              ),
+              scatterSpots: datosGraficoPrincipios.map((d) {
+                // Mostrar cada punto en su valor real sin desplazamiento
+                return ScatterSpot(
+                  d.x, // Usar el valor real calculado
+                  d.y,
+                );
+              }).toList(),
+              scatterTouchData: ScatterTouchData(
+                enabled: true,
+                handleBuiltInTouches: true,
+                touchTooltipData: ScatterTouchTooltipData(
+                  getTooltipItems: (ScatterSpot touchedSpot) {
+                    return ScatterTooltipItem(
+                      touchedSpot.x.toStringAsFixed(2), // Solo muestra X
+                      textStyle: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

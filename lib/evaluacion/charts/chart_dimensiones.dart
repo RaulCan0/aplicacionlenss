@@ -1,0 +1,166 @@
+import 'package:aplicacionlensys/colores_app.dart';
+import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+
+class MultiRingChart extends StatelessWidget {
+  final Map<String, double> puntosObtenidos; // e.g. {'Impulsores Culturales': 3.5, ...}
+  final bool isDetail;
+
+  const MultiRingChart({
+    super.key,
+    required this.puntosObtenidos,
+    this.isDetail = false,
+  });
+
+  // Puntaje máximo por dimensión (convertido de escala 5.0 a puntos)
+  static const Map<String, double> puntosTotales = {
+    'IMPULSORES CULTURALES': 250.0,     // 250 puntos máximo
+    'MEJORA CONTINUA': 350.0,           // 350 puntos máximo
+    'ALINEAMIENTO EMPRESARIAL': 200.0,  // 200 puntos máximo
+  };
+
+  // Usar los colores definidos en AppColors
+  Map<String, Color> get coloresPorDimension => Coloresapp.coloresPorDimension;
+
+ 
+
+  @override
+  Widget build(BuildContext context) {
+    final List<String> dimensiones = puntosTotales.keys.toList();
+    final int n = dimensiones.length;
+
+    final double chartSize = isDetail ? 360 : 260;
+    final double maxRadius = isDetail ? 120 : 90;
+    final double ringWidth = (maxRadius * 0.6) / n; // Hacer los anillos más delgados
+    final double centerRadius = maxRadius * 0.3; // Espacio central fijo
+
+    // Log para depuración
+    debugPrint('MultiRingChart recibió datos: $puntosObtenidos');
+
+    return Column(
+      children: [
+        // Espacio superior para centrar el gráfico
+        const SizedBox(height: 40),
+        
+        // Gráfico de anillos
+        SizedBox(
+          width: chartSize,
+          height: chartSize,
+          child: Stack(
+            alignment: Alignment.center,
+            children: List.generate(n, (index) {
+              final nombre = dimensiones[index];
+              final double totalPuntos = puntosTotales[nombre]!;
+              final double promedioObtenido = puntosObtenidos[nombre] ?? 0; // Promedio 0-5
+              
+              // Convertir promedio (0-5) a puntos (0-totalPuntos)
+              // ignore: unused_local_variable
+              final double puntosCalculados = (promedioObtenido / 5.0) * totalPuntos;
+              final double porcentaje = (promedioObtenido / 5.0).clamp(0.0, 1.0);
+
+              final double outerRadius = maxRadius - index * ringWidth;
+              final double innerRadius = outerRadius - ringWidth;
+              
+              // Asegurar que el anillo más interno tenga un espacio central
+              final double actualCenterRadius = index == n - 1 ? centerRadius : innerRadius;
+
+              return PieChart(
+                PieChartData(
+                  startDegreeOffset: -90,
+                  sectionsSpace: 0,
+                  centerSpaceRadius: actualCenterRadius,
+                  sections: [
+                    PieChartSectionData(
+                      value: porcentaje * totalPuntos,
+                      color: coloresPorDimension[nombre],
+                      radius: outerRadius,
+                      showTitle: false,
+                    ),
+                    PieChartSectionData(
+                      value: (1 - porcentaje) * totalPuntos,
+                      color: Colors.white,
+                      radius: outerRadius,
+                      showTitle: false,
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ),
+        ),
+        
+        // Más espacio entre el gráfico y la leyenda para empujar los textos hacia abajo
+        const SizedBox(height: 32),
+        
+        // Leyenda
+        _buildLegend(),
+        
+        // Espacio inferior adicional
+        const SizedBox(height: 4),
+      ],
+    );
+  }
+
+  Widget _buildLegend() {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 16,
+      runSpacing: 8,
+      children: puntosTotales.keys.map((nombre) {
+        final promedioObtenido = puntosObtenidos[nombre] ?? 0; // Promedio 0-5
+        final totalPuntos = puntosTotales[nombre]!;
+        
+        // Convertir promedio (0-5) a puntos (0-totalPuntos)
+        final puntosCalculados = (promedioObtenido / 5.0) * totalPuntos;
+        
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color.fromARGB(255, 255, 255, 255)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Indicador de color
+              Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: coloresPorDimension[nombre],
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              
+              // Texto con nombre y valor
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    nombre,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF003056),
+                    ),
+                  ),
+                  Text(
+                    '${puntosCalculados.round()}/${totalPuntos.round()}pts',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color.fromARGB(255, 0, 0, 0),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
