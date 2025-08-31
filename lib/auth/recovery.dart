@@ -1,125 +1,113 @@
-// lib/screens/recovery.dart
-import 'package:aplicacionlensys/auth/auth_service.dart';
+import 'package:aplicacionlensys/evaluacion/services/auth_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../custom/appcolors.dart';
 
-class RecoveryScreen extends ConsumerStatefulWidget {
-  const RecoveryScreen({super.key});
+class Recovery extends StatefulWidget {
+  const Recovery({super.key});
+
   @override
-  ConsumerState<RecoveryScreen> createState() => _RecoveryScreenState();
+  State<Recovery> createState() => _RecoveryState();
 }
 
-class _RecoveryScreenState extends ConsumerState<RecoveryScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController();
-  bool _loadingLocal = false;
+class _RecoveryState extends State<Recovery> {
+  final _emailController = TextEditingController();
+  bool _isLoading = false;
 
-  @override
-  void initState() {
-    super.initState();
-    Future.microtask(() async {
-      final stored = await ref.read(authNotifierProvider.notifier).loadSavedCredentials();
-      if (stored != null) _email.text = stored['email'] ?? '';
-    });
-  }
+  Future<void> _recover() async {
+    setState(() => _isLoading = true);
+    final result = await AuthService().resetPassword(_emailController.text);
+    final bool success = result['success'] == true;
+    setState(() => _isLoading = false);
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _loadingLocal = true);
-    final notifier = ref.read(authNotifierProvider.notifier);
-    final online = (ref.read(authNotifierProvider).online);
-    if (!online) {
-      setState(() => _loadingLocal = false);
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Sin conexión'),
-          content: const Text('No hay internet. ¿Deseas intentar recuperar usando credenciales guardadas localmente?'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
-            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Sí')),
-          ],
-        ),
-      );
-      if (ok != true) return;
-      final stored = await notifier.loadSavedCredentials();
-      setState(() => _loadingLocal = false);
-      if (stored != null && stored['email'] == _email.text.trim()) {
-        if (!mounted) return;
-        showDialog(context: context, builder: (_) => AlertDialog(title: const Text('Recuperado localmente'), content: const Text('Se encontraron credenciales guardadas para este correo.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Ok'))]));
-      } else {
-        if (!mounted) return;
-        showDialog(context: context, builder: (_) => AlertDialog(title: const Text('No encontrado'), content: const Text('No hay credenciales guardadas para este correo.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Ok'))]));
-      }
-      return;
-    }
-
-    final res = await notifier.sendPasswordRecovery(_email.text.trim());
-    setState(() => _loadingLocal = false);
-
-    if (res.ok) {
-      if (!mounted) return;
-      showDialog(context: context, builder: (_) => AlertDialog(title: const Text('Enviado'), content: Text(res.message), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Ok'))]));
-    } else {
-      if (!mounted) return;
-      showDialog(context: context, builder: (_) => AlertDialog(title: const Text('Error'), content: Text(res.message), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Ok'))]));
-    }
-  }
-
-  @override
-  void dispose() {
-    _email.dispose();
-    super.dispose();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(success
+          ? 'Correo enviado para restablecer contraseña'
+          : 'Error al enviar correo'),
+      ),
+    );
+    if (success) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(authNotifierProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Recuperar contraseña')),
-      body: LayoutBuilder(builder: (context, constraints) {
-        final narrow = constraints.maxWidth < 600;
-        return SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: narrow ? 600 : 800),
-                child: Card(
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: _loadingLocal || state.loading
-                        ? const Center(child: CircularProgressIndicator())
-                        : Column(mainAxisSize: MainAxisSize.min, children: [
-                            const Text('Recuperar contraseña', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 12),
-                            Form(
-                              key: _formKey,
-                              child: Column(children: [
-                                TextFormField(
-                                  controller: _email,
-                                  keyboardType: TextInputType.emailAddress,
-                                  decoration: const InputDecoration(labelText: 'Correo', prefixIcon: Icon(Icons.email)),
-                                  validator: (v) => (v == null || v.isEmpty) ? 'Ingresa el correo' : null,
-                                ),
-                                const SizedBox(height: 16),
-                                SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _submit, child: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Recuperar')))),
-                                if (state.error != null) ...[
-                                  const SizedBox(height: 12),
-                                  Text(state.error!, style: const TextStyle(color: Colors.red)),
-                                ],
-                              ]),
-                            ),
-                          ]),
+      backgroundColor: AppColors.primary,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset('assets/logo.webp', height: 100),
+                const SizedBox(height: 20),
+                const Text(
+                  'Recuperar Contraseña',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
                   ),
                 ),
-              ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Correo electrónico',
+                    prefixIcon: Icon(Icons.email),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _recover,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            'Enviar',
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                  ),
+                ),
+              ],
             ),
           ),
-        );
-      }),
+        ),
+      ),
     );
   }
 }

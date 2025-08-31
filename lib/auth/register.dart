@@ -1,118 +1,172 @@
-// lib/screens/register.dart
-import 'package:aplicacionlensys/auth/auth_service.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+// register_screen.dart
 
-class RegisterScreen extends ConsumerStatefulWidget {
+import 'package:aplicacionlensys/auth/login.dart';
+import 'package:aplicacionlensys/evaluacion/services/auth_service.dart';
+import 'package:flutter/material.dart';
+
+import '../custom/appcolors.dart';
+
+
+class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
+
   @override
-  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends ConsumerState<RegisterScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController();
-  final _pass = TextEditingController();
-  bool _loadingLocal = false;
-  bool _remember = true;
+class _RegisterScreenState extends State<RegisterScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _usernameController = TextEditingController();
+  bool _isLoading = false;
 
-  @override
-  void initState() {
-    super.initState();
-    // prefill with saved email if existe
-    Future.microtask(() async {
-      final stored = await ref.read(authNotifierProvider.notifier).loadSavedCredentials();
-      if (stored != null) {
-        _email.text = stored['email'] ?? '';
+  Future<void> _register() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty || _usernameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Completa todos los campos')),
+      );
+      return;
+    }
+
+    if (_passwordController.text.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La contraseña debe tener al menos 6 caracteres')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    final supabaseService = AuthService();
+    final result = await supabaseService.register(
+      _emailController.text,
+      _passwordController.text,
+      _usernameController.text,
+    );
+    setState(() => _isLoading = false);
+
+    if (result['success']) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registro exitoso. Inicia sesión.')),
+        );
+       await Future.delayed(const Duration(seconds: 1));
+          if (!mounted) return;
+             Navigator.pushReplacement(
+              context,
+             MaterialPageRoute(builder: (_) => const Login()),
+
+        );
       }
-    });
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _loadingLocal = true);
-    final notifier = ref.read(authNotifierProvider.notifier);
-    final res = await notifier.register(_email.text.trim(), _pass.text, remember: _remember);
-    setState(() => _loadingLocal = false);
-
-    if (res.ok) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res.message)));
-      Navigator.of(context).pop();
     } else {
-      if (!mounted) return;
-      showDialog(context: context, builder: (_) => AlertDialog(title: const Text('Error'), content: Text(res.message), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cerrar'))]));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] ?? 'Error al registrarse')),
+        );
+      }
     }
   }
 
   @override
-  void dispose() {
-    _email.dispose();
-    _pass.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final state = ref.watch(authNotifierProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Crear cuenta')),
-      body: LayoutBuilder(builder: (context, constraints) {
-        final narrow = constraints.maxWidth < 600;
-        return SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: narrow ? 600 : 800),
-                child: Card(
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: _loadingLocal || state.loading
-                        ? const Center(child: CircularProgressIndicator())
-                        : Column(mainAxisSize: MainAxisSize.min, children: [
-                            const Text('Registro', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 12),
-                            Form(
-                              key: _formKey,
-                              child: Column(children: [
-                                TextFormField(
-                                  controller: _email,
-                                  keyboardType: TextInputType.emailAddress,
-                                  decoration: const InputDecoration(labelText: 'Correo', prefixIcon: Icon(Icons.email)),
-                                  validator: (v) {
-                                    if (v == null || v.isEmpty) return 'Ingresa el correo';
-                                    if (!v.contains('@')) return 'Correo inválido';
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 12),
-                                TextFormField(
-                                  controller: _pass,
-                                  obscureText: true,
-                                  decoration: const InputDecoration(labelText: 'Contraseña', prefixIcon: Icon(Icons.lock)),
-                                  validator: (v) => (v == null || v.length < 6) ? 'Mínimo 6 caracteres' : null,
-                                ),
-                                const SizedBox(height: 12),
-                                Row(children: [Checkbox(value: _remember, onChanged: (v) => setState(() => _remember = v ?? true)), const Text('Recordar credenciales')]),
-                                const SizedBox(height: 12),
-                                SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _submit, child: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Crear cuenta')))),
-                                if (state.error != null) ...[
-                                  const SizedBox(height: 12),
-                                  Text(state.error!, style: const TextStyle(color: Colors.red)),
-                                ],
-                              ]),
-                            ),
-                          ]),
+      backgroundColor: AppColors.primary,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset('assets/logo.webp', height: 100),
+                const SizedBox(height: 20),
+                const Text(
+                  'Crear cuenta',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
                   ),
                 ),
-              ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre de usuario',
+                    prefixIcon: Icon(Icons.person),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Correo electrónico',
+                    prefixIcon: Icon(Icons.email),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Contraseña',
+                    prefixIcon: Icon(Icons.lock),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _register,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            'Registrarse',
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                  ),
+                ),
+              ],
             ),
           ),
-        );
-      }),
+        ),
+      ),
     );
   }
 }

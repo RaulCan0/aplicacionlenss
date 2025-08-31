@@ -5,7 +5,7 @@ import 'package:aplicacionlensys/evaluacion/charts/chart_comportamientos.dart';
 import 'package:aplicacionlensys/evaluacion/charts/chart_sistemas.dart';
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  const DashboardScreen({super.key, required evaluacion});
 
   Widget _buildChartContainer({
     required Color color,

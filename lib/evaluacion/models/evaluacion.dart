@@ -1,5 +1,5 @@
 class Evaluacion {
-  final  String id;
+  final String id;
   final String empresaId;
   final String empresaNombre;
   final String puntosObtenidos;
@@ -30,5 +30,24 @@ class Evaluacion {
         "empresa_nombre": empresaNombre,
         "fecha": fecha.toIso8601String(),
         "finalizada": finalizada,
+        "puntos_obtenidos": puntosObtenidos,
       };
+
+  EvaluacionParcial toParcial() => EvaluacionParcial(
+        id: id,
+        empresaId: empresaId,
+        empresaNombre: empresaNombre,
+      );
+}
+
+class EvaluacionParcial {
+  final String id;
+  final String empresaId;
+  final String empresaNombre;
+
+  EvaluacionParcial({
+    required this.id,
+    required this.empresaId,
+    required this.empresaNombre,
+  });
 }

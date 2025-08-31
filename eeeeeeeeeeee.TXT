@@ -1,0 +1,474 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
+
+import '../models/empresa.dart';
+import '../models/evaluacion.dart';
+import '../models/asociado_evaluacion.dart';
+import '../models/calificacion.dart';
+
+/// ======================= STATE =======================
+
+@immutable
+class EvaluacionState {
+  final List<Empresa> empresas;
+  final List<Evaluacion> evaluaciones;
+  final List<AsociadoEvaluacion> asociados;
+  final List<Calificacion> calificaciones;
+  /// evalId -> set(principioId)
+  final Map<String, Set<String>> principiosEvaluados;
+
+  const EvaluacionState({
+    this.empresas = const [],
+    this.evaluaciones = const [],
+    this.asociados = const [],
+    this.calificaciones = const [],
+    this.principiosEvaluados = const {},
+  });
+
+  EvaluacionState copyWith({
+    List<Empresa>? empresas,
+    List<Evaluacion>? evaluaciones,
+    List<AsociadoEvaluacion>? asociados,
+    List<Calificacion>? calificaciones,
+    Map<String, Set<String>>? principiosEvaluados,
+  }) {
+    return EvaluacionState(
+      empresas: empresas ?? this.empresas,
+      evaluaciones: evaluaciones ?? this.evaluaciones,
+      asociados: asociados ?? this.asociados,
+      calificaciones: calificaciones ?? this.calificaciones,
+      principiosEvaluados: principiosEvaluados ?? this.principiosEvaluados,
+    );
+  }
+}
+
+/// =================== CONTROLLER ======================
+
+class EvaluacionController extends StateNotifier<EvaluacionState> {
+  EvaluacionController() : super(const EvaluacionState());
+
+  // ---------------- EMPRESAS ----------------
+
+  void cargarEmpresas(List<Empresa> empresas) {
+    state = state.copyWith(empresas: List.unmodifiable(empresas));
+  }
+
+  void agregarEmpresa(Empresa empresa) {
+    final next = [...state.empresas, empresa];
+    state = state.copyWith(empresas: List.unmodifiable(next));
+  }
+
+  void actualizarEmpresa(Empresa empresa) {
+    final next = state.empresas.map((e) => e.id == empresa.id ? empresa : e).toList();
+    state = state.copyWith(empresas: List.unmodifiable(next));
+  }
+
+  void eliminarEmpresa(String empresaId) {
+    final empresas = state.empresas.where((e) => e.id != empresaId).toList();
+
+    final evalIds = state.evaluaciones
+        .where((e) => e.empresaId == empresaId)
+        .map((e) => e.id)
+        .toSet();
+
+    final evaluaciones = state.evaluaciones.where((e) => e.empresaId != empresaId).toList();
+    final asociados = state.asociados.where((a) => !evalIds.contains(a.evaluacionId)).toList();
+    final calificaciones = state.calificaciones.where((c) => !evalIds.contains(c.evaluacionId)).toList();
+
+    final principiosEvaluados = Map<String, Set<String>>.from(state.principiosEvaluados)
+      ..removeWhere((k, _) => evalIds.contains(k));
+
+    state = state.copyWith(
+      empresas: List.unmodifiable(empresas),
+      evaluaciones: List.unmodifiable(evaluaciones),
+      asociados: List.unmodifiable(asociados),
+      calificaciones: List.unmodifiable(calificaciones),
+      principiosEvaluados: principiosEvaluados,
+    );
+  }
+
+  // --------------- EVALUACIONES ---------------
+
+  void cargarEvaluaciones(List<Evaluacion> evals) {
+    state = state.copyWith(evaluaciones: List.unmodifiable(evals));
+  }
+
+  void registrarEvaluacion(Evaluacion evaluacion) {
+    final next = [...state.evaluaciones, evaluacion];
+    state = state.copyWith(evaluaciones: List.unmodifiable(next));
+  }
+
+  void actualizarEvaluacion(Evaluacion evaluacion) {
+    final next = state.evaluaciones.map((e) => e.id == evaluacion.id ? evaluacion : e).toList();
+    state = state.copyWith(evaluaciones: List.unmodifiable(next));
+  }
+
+  void eliminarEvaluacion(String evaluacionId) {
+    final evaluaciones = state.evaluaciones.where((e) => e.id != evaluacionId).toList();
+    final asociados = state.asociados.where((a) => a.evaluacionId != evaluacionId).toList();
+    final calificaciones = state.calificaciones.where((c) => c.evaluacionId != evaluacionId).toList();
+
+    final principiosEvaluados = Map<String, Set<String>>.from(state.principiosEvaluados)
+      ..remove(evaluacionId);
+
+    state = state.copyWith(
+      evaluaciones: List.unmodifiable(evaluaciones),
+      asociados: List.unmodifiable(asociados),
+      calificaciones: List.unmodifiable(calificaciones),
+      principiosEvaluados: principiosEvaluados,
+    );
+  }
+
+  List<Evaluacion> evaluacionesPorEmpresa(String empresaId) =>
+      state.evaluaciones.where((e) => e.empresaId == empresaId).toList(growable: false);
+
+  // ---------------- ASOCIADOS ----------------
+
+  void cargarAsociados(List<AsociadoEvaluacion> list) {
+    state = state.copyWith(asociados: List.unmodifiable(list));
+  }
+
+  void agregarAsociadoEvaluacion(AsociadoEvaluacion asociado) {
+    final next = [...state.asociados, asociado];
+    state = state.copyWith(asociados: List.unmodifiable(next));
+  }
+
+  bool editarAsociadoEvaluacion(AsociadoEvaluacion asociadoEditado) {
+    final i = state.asociados.indexWhere((a) => a.id == asociadoEditado.id);
+    if (i == -1) return false;
+    final next = [...state.asociados]..[i] = asociadoEditado;
+    state = state.copyWith(asociados: List.unmodifiable(next));
+    return true;
+  }
+
+  bool editarAsociadoEvaluacionCon(
+    String asociadoId,
+    AsociadoEvaluacion Function(AsociadoEvaluacion actual) build,
+  ) {
+    final i = state.asociados.indexWhere((a) => a.id == asociadoId);
+    if (i == -1) return false;
+    final next = [...state.asociados]..[i] = build(state.asociados[i]);
+    state = state.copyWith(asociados: List.unmodifiable(next));
+    return true;
+  }
+
+  void eliminarAsociadoEvaluacion(String asociadoId) {
+    final asociados = state.asociados.where((a) => a.id != asociadoId).toList();
+    final calificaciones = state.calificaciones.where((c) => c.asociadoId != asociadoId).toList();
+    state = state.copyWith(
+      asociados: List.unmodifiable(asociados),
+      calificaciones: List.unmodifiable(calificaciones),
+    );
+  }
+
+  List<AsociadoEvaluacion> asociadosPorEvaluacion(String evaluacionId) =>
+      state.asociados.where((a) => a.evaluacionId == evaluacionId).toList(growable: false);
+
+  // -------------- CALIFICACIONES --------------
+
+  void cargarCalificaciones(List<Calificacion> list) {
+    state = state.copyWith(calificaciones: List.unmodifiable(list));
+  }
+
+  /// Upsert por llave compuesta: (evaluacionId, comportamientoId, cargo, asociadoId)
+  void registrarCalificacion({
+    required String evaluacionId,
+    required String comportamientoId,
+    required double valor, // 0..5
+    String? asociadoId,
+    String? cargo, // 'ejec' | 'gto' | 'mbr'
+    String? observaciones,
+    List<String>? sistemas,
+    List<String>? evidencias,
+    DateTime? updatedAt,
+    String? id,
+  }) {
+    final nueva = Calificacion(
+      id: id ?? const Uuid().v4(),
+      evaluacionId: evaluacionId,
+      comportamientoId: comportamientoId,
+      asociadoId: asociadoId,
+      cargo: cargo,
+      valor: valor,
+      observaciones: observaciones,
+      sistemas: (sistemas ?? const []),
+      evidencias: (evidencias ?? const []),
+      updatedAt: updatedAt ?? DateTime.now(),
+    );
+
+    final i = state.calificaciones.indexWhere((c) =>
+        c.evaluacionId == evaluacionId &&
+        c.comportamientoId == comportamientoId &&
+        (c.cargo ?? '') == (cargo ?? '') &&
+        (c.asociadoId ?? '') == (asociadoId ?? ''));
+
+    if (i != -1) {
+      final next = [...state.calificaciones]..[i] = nueva;
+      state = state.copyWith(calificaciones: List.unmodifiable(next));
+    } else {
+      final next = [...state.calificaciones, nueva];
+      state = state.copyWith(calificaciones: List.unmodifiable(next));
+    }
+  }
+
+  bool editarCalificacionPorId(
+    String calificacionId, {
+    double? valor,
+    String? observaciones,
+    List<String>? sistemas,
+    List<String>? evidencias,
+    String? cargo,
+    String? asociadoId,
+  }) {
+    final i = state.calificaciones.indexWhere((c) => c.id == calificacionId);
+    if (i == -1) return false;
+    final old = state.calificaciones[i];
+    final updated = Calificacion(
+      id: old.id,
+      evaluacionId: old.evaluacionId,
+      comportamientoId: old.comportamientoId,
+      asociadoId: asociadoId ?? old.asociadoId,
+      cargo: cargo ?? old.cargo,
+      valor: valor ?? old.valor,
+      observaciones: observaciones ?? old.observaciones,
+      sistemas: sistemas ?? old.sistemas,
+      evidencias: evidencias ?? old.evidencias,
+      updatedAt: DateTime.now(),
+    );
+    final next = [...state.calificaciones]..[i] = updated;
+    state = state.copyWith(calificaciones: List.unmodifiable(next));
+    return true;
+  }
+
+  bool editarCalificacionPorLlave({
+    required String evaluacionId,
+    required String comportamientoId,
+    String? cargo,
+    String? asociadoId,
+    double? valor,
+    String? observaciones,
+    List<String>? sistemas,
+    List<String>? evidencias,
+  }) {
+    final i = state.calificaciones.indexWhere((c) =>
+        c.evaluacionId == evaluacionId &&
+        c.comportamientoId == comportamientoId &&
+        (c.cargo ?? '') == (cargo ?? '') &&
+        (c.asociadoId ?? '') == (asociadoId ?? ''));
+    if (i == -1) return false;
+
+    final old = state.calificaciones[i];
+    final updated = Calificacion(
+      id: old.id,
+      evaluacionId: old.evaluacionId,
+      comportamientoId: old.comportamientoId,
+      asociadoId: asociadoId ?? old.asociadoId,
+      cargo: cargo ?? old.cargo,
+      valor: valor ?? old.valor,
+      observaciones: observaciones ?? old.observaciones,
+      sistemas: sistemas ?? old.sistemas,
+      evidencias: evidencias ?? old.evidencias,
+      updatedAt: DateTime.now(),
+    );
+    final next = [...state.calificaciones]..[i] = updated;
+    state = state.copyWith(calificaciones: List.unmodifiable(next));
+    return true;
+  }
+bool toggleSistemaEnCalificacion(String calificacionId, String sistema, {bool? activo}) {
+  final i = state.calificaciones.indexWhere((c) => c.id == calificacionId);
+  if (i == -1) return false;
+
+  final old = state.calificaciones[i];
+  final current = (old.sistemas ?? const <String>[]).toSet(); // null-safe
+  final contiene = current.contains(sistema);
+  final debeEstar = activo ?? !contiene;
+
+  if (debeEstar) {
+    current.add(sistema);
+  } else {
+    current.remove(sistema);
+  }
+
+  final updated = Calificacion(
+    id: old.id,
+    evaluacionId: old.evaluacionId,
+    comportamientoId: old.comportamientoId,
+    asociadoId: old.asociadoId,
+    cargo: old.cargo,
+    valor: old.valor,
+    observaciones: old.observaciones,
+    sistemas: current.toList(),
+    evidencias: old.evidencias ?? const <String>[],
+    updatedAt: DateTime.now(),
+  );
+
+  final next = [...state.calificaciones]..[i] = updated;
+  state = state.copyWith(calificaciones: List.unmodifiable(next));
+  return true;
+}
+
+bool agregarEvidencia(String calificacionId, String evidenciaUrl) {
+  final i = state.calificaciones.indexWhere((c) => c.id == calificacionId);
+  if (i == -1) return false;
+
+  final old = state.calificaciones[i];
+  final list = [...(old.evidencias ?? const <String>[]), evidenciaUrl]; // null-safe
+
+  final updated = Calificacion(
+    id: old.id,
+    evaluacionId: old.evaluacionId,
+    comportamientoId: old.comportamientoId,
+    asociadoId: old.asociadoId,
+    cargo: old.cargo,
+    valor: old.valor,
+    observaciones: old.observaciones,
+    sistemas: old.sistemas ?? const <String>[],
+    evidencias: list,
+    updatedAt: DateTime.now(),
+  );
+
+  final next = [...state.calificaciones]..[i] = updated;
+  state = state.copyWith(calificaciones: List.unmodifiable(next));
+  return true;
+}
+
+bool removerEvidencia(String calificacionId, String evidenciaUrl) {
+  final i = state.calificaciones.indexWhere((c) => c.id == calificacionId);
+  if (i == -1) return false;
+
+  final old = state.calificaciones[i];
+  final list = (old.evidencias ?? const <String>[])
+      .where((e) => e != evidenciaUrl) // null-safe .where(...)
+      .toList();
+
+  final updated = Calificacion(
+    id: old.id,
+    evaluacionId: old.evaluacionId,
+    comportamientoId: old.comportamientoId,
+    asociadoId: old.asociadoId,
+    cargo: old.cargo,
+    valor: old.valor,
+    observaciones: old.observaciones,
+    sistemas: old.sistemas ?? const <String>[],
+    evidencias: list,
+    updatedAt: DateTime.now(),
+  );
+
+  final next = [...state.calificaciones]..[i] = updated;
+  state = state.copyWith(calificaciones: List.unmodifiable(next));
+  return true;
+}
+
+  void eliminarCalificacion(String calificacionId) {
+    final next = state.calificaciones.where((c) => c.id != calificacionId).toList();
+    state = state.copyWith(calificaciones: List.unmodifiable(next));
+  }
+
+  List<Calificacion> calificacionesPorEvaluacion(String evaluacionId) =>
+      state.calificaciones.where((c) => c.evaluacionId == evaluacionId).toList(growable: false);
+
+  List<Calificacion> calificacionesPorAsociado(String asociadoId) =>
+      state.calificaciones.where((c) => c.asociadoId == asociadoId).toList(growable: false);
+
+  // ----------- PRINCIPIOS EVALUADOS & PROGRESO -----------
+
+  Set<String> getPrincipiosEvaluados(String evaluacionId) =>
+      state.principiosEvaluados[evaluacionId] ?? <String>{};
+
+  void marcarPrincipioEvaluado(String evaluacionId, String principioId) {
+    final map = Map<String, Set<String>>.from(state.principiosEvaluados);
+    final set = map.putIfAbsent(evaluacionId, () => <String>{});
+    set.add(principioId);
+    state = state.copyWith(principiosEvaluados: map);
+  }
+
+  void desmarcarPrincipioEvaluado(String evaluacionId, String principioId) {
+    final map = Map<String, Set<String>>.from(state.principiosEvaluados);
+    final set = map[evaluacionId];
+    if (set != null) {
+      set.remove(principioId);
+      state = state.copyWith(principiosEvaluados: map);
+    }
+  }
+
+  bool estaPrincipioEvaluado(String evaluacionId, String principioId) =>
+      state.principiosEvaluados[evaluacionId]?.contains(principioId) ?? false;
+
+  double promedioPrincipio({
+    required String evaluacionId,
+    required String principioId,
+    String? cargo,
+  }) {
+    final list = state.calificaciones.where((c) {
+      if (c.evaluacionId != evaluacionId) return false;
+      if (!c.comportamientoId.startsWith('${principioId}_')) return false;
+      if (cargo != null && (c.cargo ?? '') != cargo) return false;
+      return true;
+    }).toList();
+
+    if (list.isEmpty) return 0.0;
+    final sum = list.fold<double>(0, (a, b) => a + b.valor);
+    return sum / list.length;
+  }
+
+  Map<String, Map<String, double>> tablaDatosPorPrincipios(String evaluacionId) {
+    final result = <String, Map<String, double>>{};
+    final cargos = ['ejec', 'gto', 'mbr'];
+
+    for (final cal in state.calificaciones.where((c) => c.evaluacionId == evaluacionId)) {
+      final p = cal.comportamientoId.split('_').first;
+      result.putIfAbsent(p, () => {});
+      for (final cargo in cargos) {
+        result[p]![cargo] = promedioPrincipio(
+          evaluacionId: evaluacionId,
+          principioId: p,
+          cargo: cargo,
+        );
+      }
+    }
+    return result;
+  }
+
+  double progresoEvaluacion(String evaluacionId, int totalPrincipios) {
+    final n = state.principiosEvaluados[evaluacionId]?.length ?? 0;
+    if (totalPrincipios == 0) return 0.0;
+    return n / totalPrincipios;
+  }
+
+  double promedioDimensionPorCargo({
+    required String evaluacionId,
+    required String dimensionId, // ej. 'D1', 'D2', 'D3'
+    String? cargo,
+  }) {
+    final list = state.calificaciones.where((c) {
+      if (c.evaluacionId != evaluacionId) return false;
+      if (cargo != null && (c.cargo ?? '') != cargo) return false;
+      return c.comportamientoId.startsWith('${dimensionId}_');
+    }).toList();
+
+    if (list.isEmpty) return 0.0;
+    final sum = list.fold<double>(0.0, (a, b) => a + b.valor);
+    return sum / list.length;
+  }
+
+  double puntosObtenidosDimension({
+    required String evaluacionId,
+    required String dimensionId,
+    required double puntosMaxDim, // D1=250, D2=350, D3=200
+  }) {
+    final prom = promedioDimensionPorCargo(
+      evaluacionId: evaluacionId,
+      dimensionId: dimensionId,
+      cargo: null,
+    );
+    return (prom / 5.0) * puntosMaxDim;
+  }
+}
+
+/// =================== PROVIDER ========================
+
+final evaluacionProvider =
+    StateNotifierProvider<EvaluacionController, EvaluacionState>((ref) {
+  return EvaluacionController();
+});
