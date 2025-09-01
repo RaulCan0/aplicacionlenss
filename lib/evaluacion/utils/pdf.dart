@@ -40,8 +40,8 @@ class ReportePdfService {
     final pdf = pw.Document();
 
     // Estilos reutilizables
-    final txtSmall = pw.TextStyle(fontSize: 9);
-    final txtNormal = pw.TextStyle(fontSize: 10);
+    const txtSmall = pw.TextStyle(fontSize: 9);
+    const txtNormal = pw.TextStyle(fontSize: 10);
     final headerStyle =
         pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold);
 

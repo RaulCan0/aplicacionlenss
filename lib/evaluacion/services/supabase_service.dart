@@ -23,7 +23,7 @@ class SupabaseService {
         .eq('dimension_id', dimensionId);
     final evaluados = (response as List).length;
     // Supón que el total esperado es 100 (ajusta según tu lógica)
-    final totalEsperado = 100;
+    const totalEsperado = 100;
     return totalEsperado == 0 ? 0.0 : evaluados / totalEsperado;
   }
 
@@ -35,7 +35,7 @@ class SupabaseService {
         .eq('empresa_id', empresaId)
         .eq('dimension_id', dimensionId);
     final evaluados = (response as List).length;
-    final totalEsperado = 100;
+    const totalEsperado = 100;
     return totalEsperado == 0 ? 0.0 : evaluados / totalEsperado;
   }
 
@@ -51,7 +51,7 @@ class SupabaseService {
         .eq('dimension_id', dimensionId)
         .eq('asociado_id', asociadoId);
     final evaluados = (response as List).length;
-    final totalEsperado = 100;
+    const totalEsperado = 100;
     return totalEsperado == 0 ? 0.0 : evaluados / totalEsperado;
   }
 
@@ -130,21 +130,21 @@ class SupabaseService {
 
   // ======================= ASOCIADOS =======================
   Future<List<AsociadoEvaluacion>> getAsociadosEvaluacion(String evaluacionId) async {
-    final response = await _client.from('asociados_evaluacion').select().eq('evaluacion_id', evaluacionId);
+    final response = await _client.from('asociado_evaluacion').select().eq('evaluacion_id', evaluacionId);
     return (response as List).map((e) => AsociadoEvaluacion.fromMap(e)).toList();
   }
 
   Future<AsociadoEvaluacion?> addAsociado(AsociadoEvaluacion asociado) async {
-    final response = await _client.from('asociados_evaluacion').insert(asociado.toMap()).select().single();
+    final response = await _client.from('asociado_evaluacion').insert(asociado.toMap()).select().single();
     return AsociadoEvaluacion.fromMap(response);
   }
 
   Future<void> updateAsociado(AsociadoEvaluacion asociado) async {
-    await _client.from('asociados_evaluacion').update(asociado.toMap()).eq('id', asociado.id);
+    await _client.from('asociado_evaluacion').update(asociado.toMap()).eq('id', asociado.id);
   }
 
   Future<void> deleteAsociado(String id) async {
-    await _client.from('asociados_evaluacion').delete().eq('id', id);
+    await _client.from('asociado_evaluacion').delete().eq('id', id);
   }
 
   // ======================= CALIFICACIONES =======================
@@ -391,3 +391,32 @@ extension SupabaseServicePerfilExtension on SupabaseService {
       return publicUrl;
     }
   }
+Future<String> ensureEvaluacionId(
+  SupabaseService supabaseService, {
+  required String empresaId,
+  String? empresaNombre,
+}) async {
+  // Reutiliza la evaluación activa si existe
+  final existing = await supabaseService._client
+      .from('evaluacion')
+      .select('id')
+      .eq('empresa_id', empresaId)
+      .eq('finalizada', false)
+      .order('fecha', ascending: false)
+      .limit(1)
+      .maybeSingle();
+
+  if (existing != null) {
+    return existing['id'] as String;
+  }
+
+  // Crea una nueva evaluación si no hay activa
+  final nueva = await supabaseService._client.from('evaluacion').insert({
+    'empresa_id': empresaId,
+    'empresa_nombre': empresaNombre,
+    'fecha': DateTime.now().toIso8601String(),
+    'finalizada': false,
+  }).select('id').single();
+
+  return nueva['id'] as String;
+}

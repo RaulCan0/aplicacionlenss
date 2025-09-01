@@ -1,32 +1,20 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'menu_reportes.dart';
 
-/// Modelo para la hoja Shingo (D4)
 class ShingoResultData {
   Map<String, String> campos;
-  File? imagenFile; // Imagen local opcional
-  int calificacion; // 0..5
+  File? imagen;
+  int calificacion;
 
   ShingoResultData({
     this.campos = const {},
-    this.imagenFile,
+    this.imagen,
     this.calificacion = 0,
   });
-
-  ShingoResultData copyWith({
-    Map<String, String>? campos,
-    File? imagenFile,
-    int? calificacion,
-  }) => ShingoResultData(
-        campos: campos ?? this.campos,
-        imagenFile: imagenFile ?? this.imagenFile,
-        calificacion: calificacion ?? this.calificacion,
-      );
 }
 
-/// Hoja de captura/edición para una subcategoría de D4
-/// Devuelve un int (0..5) como calificación al cerrar con "Guardar".
 class HojaShingoWidget extends StatefulWidget {
   final String titulo;
   final ShingoResultData data;
@@ -42,121 +30,216 @@ class HojaShingoWidget extends StatefulWidget {
 }
 
 class _HojaShingoWidgetState extends State<HojaShingoWidget> {
-  final _formKey = GlobalKey<FormState>();
-  late Map<String, TextEditingController> _controllers;
-  int _valor = 0;
-  File? _imagen;
-  final _picker = ImagePicker();
+  late Map<String, String> campos;
+  File? imagen;
+  int calificacion = 0;
 
   @override
   void initState() {
     super.initState();
-    _valor = widget.data.calificacion.clamp(0, 5);
-    _imagen = widget.data.imagenFile;
-    _controllers = {
-      for (final entry in widget.data.campos.entries)
-        entry.key: TextEditingController(text: entry.value),
-    };
+    campos = Map.from(widget.data.campos);
+    imagen = widget.data.imagen;
+    calificacion = widget.data.calificacion.clamp(0, 5);
   }
 
-  @override
-  void dispose() {
-    for (final c in _controllers.values) {
-      c.dispose();
+  Future<void> seleccionarImagen() async {
+    final picker = ImagePicker();
+    final archivo = await picker.pickImage(source: ImageSource.gallery);
+    if (archivo != null && mounted) {
+      setState(() => imagen = File(archivo.path));
     }
-    super.dispose();
   }
 
-  void _agregarCampo() {
-    final nuevo = 'Campo ${_controllers.length + 1}';
-    setState(() {
-      _controllers[nuevo] = TextEditingController();
-    });
+  Future<void> editarCampo(String campo) async {
+    final controller = TextEditingController(text: campos[campo] ?? '');
+    final result = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Editar "$campo"'),
+        content: TextField(controller: controller, maxLines: 4),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Guardar')),
+        ],
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => campos[campo] = result);
+    }
   }
 
-  Future<void> _seleccionarImagen() async {
-    final x = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
-    if (x == null) return;
-    setState(() {
-      _imagen = File(x.path);
-    });
-  }
-
-  void _guardar() {
-    if (!_formKey.currentState!.validate()) return;
-    // Si quisieras devolver campos/imagen, cámbialo por: Navigator.pop(context, ShingoResultData(...))
-    Navigator.pop<int>(context, _valor);
+  Widget campoItem(String titulo, String contenido, {int maxLines = 3, String? tooltip}) {
+    return Tooltip(
+      message: tooltip ?? titulo,
+      child: InkWell(
+        onTap: () => editarCampo(titulo),
+        child: Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade400),
+            color: Colors.grey.shade50,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+              const SizedBox(height: 2),
+              Text(
+                contenido.isEmpty ? 'Toca para editar' : contenido,
+                maxLines: maxLines,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 10, color: contenido.isEmpty ? Colors.grey : Colors.black),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isCompact = width < 450;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.titulo),
+        backgroundColor: const Color(0xFF003056),
+        centerTitle: true,
+        title: Text(widget.titulo, style: const TextStyle(fontSize: 16, color: Colors.white)),
         actions: [
-          IconButton(onPressed: _agregarCampo, icon: const Icon(Icons.add_comment), tooltip: 'Agregar campo'),
-          IconButton(onPressed: _guardar, icon: const Icon(Icons.save), tooltip: 'Guardar'),
+          IconButton(
+            icon: const Icon(Icons.save, color: Colors.white),
+            tooltip: 'Guardar hoja',
+            onPressed: () {
+              widget.data.campos = Map.from(campos);
+              widget.data.imagen = imagen;
+              widget.data.calificacion = calificacion;
+              Navigator.of(context).pop(calificacion);
+            },
+          ),
+          IcoButtonMenuReportes(
+            onSelected: (formato) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Seleccionaste: $formato')),
+              );
+            },
+          ),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Calificación 0..5
-            Row(
-              children: [
-                const Text('Calificación (0..5):', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(width: 12),
-                DropdownButton<int>(
-                  value: _valor,
-                  items: List.generate(6, (i) => DropdownMenuItem(value: i, child: Text('$i'))),
-                  onChanged: (v) => setState(() => _valor = v ?? 0),
-                ),
-              ],
+      body: Center(
+        child: SingleChildScrollView(
+          child: Container(
+            width: isCompact ? double.infinity : 430,
+            margin: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.black87, width: 1.2),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 6)],
             ),
-            const SizedBox(height: 12),
-            // Imagen
-            Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ElevatedButton.icon(
-                  onPressed: _seleccionarImagen,
-                  icon: const Icon(Icons.image_outlined),
-                  label: const Text('Seleccionar imagen'),
-                ),
-                const SizedBox(width: 12),
-                if (_imagen != null)
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.file(_imagen!, height: 120, fit: BoxFit.cover),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Text('Campos', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            ..._controllers.entries.map((e) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: TextFormField(
-                    controller: e.value,
-                    decoration: InputDecoration(
-                      labelText: e.key,
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () => setState(() => e.value.clear()),
+                GestureDetector(
+                  onTap: seleccionarImagen,
+                  child: AspectRatio(
+                    aspectRatio: 16 / 7,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        image: imagen != null
+                            ? DecorationImage(
+                                image: FileImage(imagen!),
+                                fit: BoxFit.contain,
+                              )
+                            : null,
                       ),
+                      child: imagen == null
+                          ? const Center(child: Text('Toca para subir imagen/gráfico', style: TextStyle(fontSize: 11)))
+                          : null,
                     ),
                   ),
-                )),
-            const SizedBox(height: 32),
-            FilledButton.icon(
-              onPressed: _guardar,
-              icon: const Icon(Icons.save),
-              label: const Text('Guardar y volver'),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: campoItem('Cómo se calcula', campos['Cómo se calcula'] ?? ''),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: campoItem('Cómo se mide', campos['Cómo se mide'] ?? ''),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                campoItem('¿Por qué es importante?', campos['¿Por qué es importante?'] ?? ''),
+                const SizedBox(height: 6),
+                campoItem('Sistemas usados para mejorar', campos['Sistemas usados para mejorar'] ?? ''),
+                const SizedBox(height: 6),
+                campoItem('Explicación de desviaciones', campos['Explicación de desviaciones'] ?? ''),
+                const SizedBox(height: 6),
+                campoItem('Cambios en 3 años', campos['Cambios en 3 años'] ?? ''),
+                const SizedBox(height: 6),
+                campoItem('Cómo se definen metas', campos['Cómo se definen metas'] ?? ''),
+                const SizedBox(height: 13),
+                Tooltip(
+                  message: 'Selecciona la calificación del resultado (0 = muy bajo, 5 = excelente)',
+                  child: Row(
+                    children: [
+                      const Text('Calificación (0-5):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      Expanded(
+                        child: Slider(
+                          value: calificacion.toDouble(),
+                          min: 0,
+                          max: 5,
+                          divisions: 5,
+                          label: '$calificacion',
+                          onChanged: (value) => setState(() => calificacion = value.toInt()),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 20),
+                        tooltip: 'Editar calificación',
+                        onPressed: () async {
+                          final result = await showDialog<int>(
+                            context: context,
+                            builder: (_) => StatefulBuilder(
+                              builder: (context, setStateDialog) => AlertDialog(
+                                title: const Text('Editar calificación'),
+                                content: Slider(
+                                  value: calificacion.toDouble(),
+                                  min: 0,
+                                  max: 5,
+                                  divisions: 5,
+                                  label: '$calificacion',
+                                  onChanged: (v) {
+                                    setStateDialog(() => calificacion = v.toInt());
+                                  },
+                                ),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+                                  TextButton(onPressed: () => Navigator.pop(context, calificacion), child: const Text('Guardar')),
+                                ],
+                              ),
+                            ),
+                          );
+                          if (result != null) setState(() => calificacion = result);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                Center(
+                  child: Text('Calificación actual: $calificacion / 5',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                ),
+                const SizedBox(height: 4),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -7,8 +7,8 @@ class DetallesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Detalles')),
-      body: Center(child: Text('3 gráficos por cargo')),
+      appBar: AppBar(title: const Text('Detalles')),
+      body: const Center(child: Text('3 gráficos por cargo')),
     );
   }
 }

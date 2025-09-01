@@ -49,8 +49,8 @@ class DashboardScreen extends StatelessWidget {
           children: [
             _buildChartContainer(
               color: Colors.blue.shade50,
-              child: MultiRingChart(
-                puntosObtenidos: const {
+              child: const MultiRingChart(
+                puntosObtenidos: {
                   'IMPULSORES CULTURALES': 3.5,
                   'MEJORA CONTINUA': 4.2,
                   'ALINEAMIENTO EMPRESARIAL': 2.8,
@@ -59,22 +59,22 @@ class DashboardScreen extends StatelessWidget {
             ),
             _buildChartContainer(
               color: Colors.green.shade50,
-              child: ScatterBubbleChart(
-                datosGraficoPrincipios: const [], // Aquí pon tus datos reales
+              child: const ScatterBubbleChart(
+                datosGraficoPrincipios: [], // Aquí pon tus datos reales
               ),
             ),
             _buildChartContainer(
               color: Colors.orange.shade50,
-              child: ChartComportamiento(
-                datos: const {}, // Aquí pon tus datos reales
+              child: const ChartComportamiento(
+                datos: {}, // Aquí pon tus datos reales
                 minY: 0.0,
                 maxY: 5.0,
               ),
             ),
             _buildChartContainer(
               color: Colors.purple.shade50,
-              child: ChartSistemas(
-                data: const {}, // Aquí pon tus datos reales
+              child: const ChartSistemas(
+                data: {}, // Aquí pon tus datos reales
                 minY: 0.0,
                 maxY: 5.0,
               ),

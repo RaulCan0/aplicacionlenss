@@ -149,7 +149,7 @@ class HorizontalBarSystemsChart extends StatelessWidget {
                           getTitlesWidget: (_, _) => const SizedBox.shrink(),
                         ),
                       ),
-                      rightTitles: AxisTitles(),
+                      rightTitles: const AxisTitles(),
                       bottomTitles: AxisTitles(
                         sideTitles: SideTitles(
                           showTitles: true,
@@ -227,7 +227,7 @@ class HorizontalBarSystemsChart extends StatelessWidget {
     if (parts.length == 2) return '${parts[0]}\n${parts[1]}';
 
     final buffer = StringBuffer();
-    final maxLines = 3;
+    const maxLines = 3;
     int wordsPerLine = (parts.length / maxLines).ceil();
     for (int i = 0; i < parts.length; i++) {
       buffer.write(parts[i]);

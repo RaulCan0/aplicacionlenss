@@ -105,7 +105,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
     } else {
       final XFile? file = await openFile(
         acceptedTypeGroups: [
-          XTypeGroup(label: 'images', extensions: ['jpg', 'jpeg', 'png']),
+          const XTypeGroup(label: 'images', extensions: ['jpg', 'jpeg', 'png']),
         ],
       );
       if (file == null) return;

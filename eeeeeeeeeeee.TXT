@@ -212,7 +212,7 @@ class EvaluacionController extends StateNotifier<EvaluacionState> {
     }
   }
 
-  bool editarCalificacionPorId(
+  bool editarCalificacionPorComportamientoAsociado(
     String calificacionId, {
     double? valor,
     String? observaciones,
@@ -360,7 +360,7 @@ bool removerEvidencia(String calificacionId, String evidenciaUrl) {
   return true;
 }
 
-  void eliminarCalificacion(String calificacionId) {
+  void eliminarCalificacionAsocias(String calificacionId) {
     final next = state.calificaciones.where((c) => c.id != calificacionId).toList();
     state = state.copyWith(calificaciones: List.unmodifiable(next));
   }

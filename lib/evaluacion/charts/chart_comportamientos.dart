@@ -137,7 +137,7 @@ class ChartComportamiento extends StatelessWidget {
                           );
                         }),
                         titlesData: FlTitlesData(
-                          topTitles: AxisTitles(
+                          topTitles: const AxisTitles(
                             sideTitles: SideTitles(
                               showTitles: false,
                             ),
@@ -186,7 +186,7 @@ class ChartComportamiento extends StatelessWidget {
                               },
                             ),
                           ),
-                          rightTitles: AxisTitles(
+                          rightTitles: const AxisTitles(
                             sideTitles: SideTitles(showTitles: false),
                           ),
                         ),

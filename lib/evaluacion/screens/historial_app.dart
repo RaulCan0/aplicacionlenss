@@ -9,7 +9,12 @@ class Historial extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Empresas Evaluadas'),
+        backgroundColor: const Color(0xFF003056),
+        centerTitle: true,
+        title: const Text(
+          'HISTORIAL EMPRESAS',
+          style: TextStyle(color: Colors.white),
+        ),
       ),
       body: ListView.builder(
         itemCount: empresasEvaluadas.length,

@@ -71,7 +71,7 @@ class ScatterBubbleChart extends StatelessWidget {
               maxX: maxX,
               minY: minY,
               maxY: maxY,
-              gridData: FlGridData(show: true),
+              gridData: const FlGridData(show: true),
               borderData: FlBorderData(
                 show: true,
                 border: const Border(
@@ -127,10 +127,10 @@ class ScatterBubbleChart extends StatelessWidget {
                     ),
                   ),
                 ),
-                topTitles: AxisTitles(
+                topTitles: const AxisTitles(
                   sideTitles: SideTitles(showTitles: false),
                 ),
-                rightTitles: AxisTitles(
+                rightTitles: const AxisTitles(
                   sideTitles: SideTitles(showTitles: false),
                 ),
               ),

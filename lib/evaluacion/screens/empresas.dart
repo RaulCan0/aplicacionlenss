@@ -1,12 +1,15 @@
 // ignore_for_file: use_build_context_synchronously
 
+
 import 'package:aplicacionlensys/evaluacion/screens/historial_app.dart';
+import 'package:aplicacionlensys/evaluacion/services/supabase_service.dart';
+import 'package:aplicacionlensys/evaluacion/utils/ensure.dart';
+// Removed unused import
 import 'package:aplicacionlensys/home/chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../models/empresa.dart';
-import '../services/supabase_service.dart';
 import 'dimensiones.dart';
 
 
@@ -59,7 +62,7 @@ class _EmpresasScreenState extends State<EmpresasScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
-      drawer: SizedBox(width: 300, child: const ChatWidgetDrawer()),
+      drawer: const SizedBox(width: 300, child: ChatWidgetDrawer()),
      /* endDrawer: const DrawerLensysWidget()*/
       appBar: AppBar(
         backgroundColor: const Color(0xFF003056),
@@ -103,35 +106,48 @@ class _EmpresasScreenState extends State<EmpresasScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (empresaCreada != null)
-                          _buildButton(
-                            context,
-                            label: 'Evaluación de ${empresaCreada.nombre}',
-                            onTap: () {
-                              final String nuevaEvaluacionId = const Uuid().v4();
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => DimensionesScreen(
-                                    empresa: empresaCreada,
-                                    evaluacionId: nuevaEvaluacionId,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        const SizedBox(height: 20),
-                        _buildButton(
-                          context,
-                          label: 'HISTORIAL',
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const Historial(empresasEvaluadas: []),
-                            ),
-                          ),
-                        ),
-                      ],
+  if (empresaCreada != null)
+    _buildButton(
+      context,
+      label: 'Evaluación de ${empresaCreada.nombre}',
+      onTap: () async {
+        try {
+          final evalService = EvaluacionIdService();
+          final evalId = await evalService.ensureEvaluacionId(
+            empresaId: empresaCreada.id,
+            empresaNombre: empresaCreada.nombre,
+          );
+
+          if (!mounted) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DimensionesScreen(
+                empresa: empresaCreada,
+                evaluacionId: evalId,
+              ),
+            ),
+          );
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error al iniciar evaluación: $e')),
+          );
+        }
+      },
+    ),
+  const SizedBox(height: 20),
+  _buildButton(
+    context,
+    label: 'HISTORIAL',
+    onTap: () => Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const Historial(empresasEvaluadas: []),
+      ),
+    ),
+  ),
+],
                     ),
                   ),
                 ],

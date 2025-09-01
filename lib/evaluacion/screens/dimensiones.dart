@@ -1,10 +1,15 @@
 import 'package:aplicacionlensys/evaluacion/providers/evaluaciones_provider.dart';
 import 'package:aplicacionlensys/evaluacion/screens/formulario_asociados.dart';
+import 'package:aplicacionlensys/evaluacion/screens/resultados_d4_screen.dart';
+import 'package:aplicacionlensys/evaluacion/screens/tabla_global.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/empresa.dart';
 
+class AppColors {
+  static const Color primary = Color.fromARGB(255, 3, 34, 59); // Azul AppBar
+}
 
 class DimensionesScreen extends ConsumerWidget {
   final Empresa empresa;
@@ -22,51 +27,107 @@ class DimensionesScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Dimensiones - ${empresa.nombre}"),
+        backgroundColor: AppColors.primary,
+        iconTheme: const IconThemeData(color: Colors.white),
+        centerTitle: true,
+        title: Text(
+          "Dimensiones - ${empresa.nombre}",
+          style: const TextStyle(color: Colors.white),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildDimensionCard(
+          _buildCard(
             context,
-            titulo: "D1 - Impulsores Culturales",
+            titulo: "IMPULSORES CULTURALES",
             color: Colors.blue,
-            evaluacionId: evaluacionId,
-            dimensionId: "D1",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => FormularioAsociadosScreen(
+                    evaluacionId: evaluacionId,
+                    dimensionId: "D1",
+                    empresa: empresa,
+                  ),
+                ),
+              );
+            },
           ),
-          _buildDimensionCard(
+          _buildCard(
             context,
-            titulo: "D2 - Mejora Continua",
+            titulo: "MEJORA CONTINUA",
             color: Colors.green,
-            evaluacionId: evaluacionId,
-            dimensionId: "D2",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => FormularioAsociadosScreen(
+                    evaluacionId: evaluacionId,
+                    dimensionId: "D2",
+                    empresa: empresa,
+                  ),
+                ),
+              );
+            },
           ),
-          _buildDimensionCard(
+          _buildCard(
             context,
-            titulo: "D3 - Alineamiento Organizacional",
+            titulo: "ALINEAMIENTO EMPRESARIAL",
             color: Colors.orange,
-            evaluacionId: evaluacionId,
-            dimensionId: "D3",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => FormularioAsociadosScreen(
+                    evaluacionId: evaluacionId,
+                    dimensionId: "D3",
+                    empresa: empresa,
+                  ),
+                ),
+              );
+            },
+              showCircles: false,
           ),
-          _buildSimpleCard(
-            titulo: "D4 - Resultados",
+          _buildCard(
+            context,
+            titulo: "RESULTADOS ",
             color: Colors.purple,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ResultadosD4Screen(),
+                ),
+              );
+            },
+              showCircles: false,
           ),
-          _buildSimpleCard(
+          _buildCard(
+            context,
             titulo: "EVALUACION FINAL",
             color: Colors.grey,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const TablaGlobalScreen(),
+                ),
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDimensionCard(
+  Widget _buildCard(
     BuildContext context, {
     required String titulo,
     required Color color,
-    required String evaluacionId,
-    required String dimensionId,
+    required VoidCallback onTap,
+    bool showCircles = true,
   }) {
     return Card(
       margin: const EdgeInsets.only(bottom: 20),
@@ -74,18 +135,7 @@ class DimensionesScreen extends ConsumerWidget {
       elevation: 4,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => FormularioAsociadosScreen(
-                evaluacionId: evaluacionId,
-                dimensionId: dimensionId,
-                empresa: empresa,
-              ),
-            ),
-          );
-        },
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -99,14 +149,26 @@ class DimensionesScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: const [
-                  _CircleCargo(label: "Ejecutivos", progreso: 0.6, color: Colors.blue),
-                  _CircleCargo(label: "Gerentes", progreso: 0.4, color: Colors.green),
-                  _CircleCargo(label: "Miembros", progreso: 0.8, color: Colors.orange),
-                ],
-              ),
+              showCircles
+                  ? const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _CircleCargo("Ejecutivos", Colors.blue),
+                        _CircleCargo("Gerentes", Colors.green),
+                        _CircleCargo("Miembros", Colors.orange),
+                      ],
+                    )
+                  : SizedBox(
+                      height: 80,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Container(width: 80),
+                          Container(width: 80),
+                          Container(width: 80),
+                        ],
+                      ),
+                    ),
             ],
           ),
         ),
@@ -114,36 +176,14 @@ class DimensionesScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSimpleCard({required String titulo, required Color color}) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 20),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          titulo,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-            color: color,
-          ),
-        ),
-      ),
-    );
-  }
+  // Elimina _buildSimpleCard, ya no se usa
 }
 
 class _CircleCargo extends StatelessWidget {
   final String label;
-  final double progreso;
   final Color color;
 
-  const _CircleCargo({
-    required this.label,
-    required this.progreso,
-    required this.color,
-  });
+  const _CircleCargo(this.label, this.color);
 
   @override
   Widget build(BuildContext context) {
@@ -156,15 +196,15 @@ class _CircleCargo extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               CircularProgressIndicator(
-                value: progreso,
+                value: 0.0, // sin ejemplo
                 strokeWidth: 8,
                 color: color,
                 backgroundColor: Colors.grey[300],
               ),
-              Center(
+              const Center(
                 child: Text(
-                  "${(progreso * 100).toStringAsFixed(0)}%",
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  "-",
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -176,3 +216,4 @@ class _CircleCargo extends StatelessWidget {
     );
   }
 }
+                    

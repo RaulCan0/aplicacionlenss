@@ -61,8 +61,10 @@ class _FormularioAsociadosScreenState
   }
 
   Future<void> _mostrarDialogoAgregarAsociado() async {
-    final nombreCtrl = TextEditingController();
-    String cargoSeleccionado = 'E';
+  final nombreCtrl = TextEditingController();
+  final antiguedadCtrl = TextEditingController();
+  final puestoCtrl = TextEditingController();
+  String cargoSeleccionado = 'E';
 
     showDialog(
       context: context,
@@ -77,6 +79,22 @@ class _FormularioAsociadosScreenState
                 controller: nombreCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Nombre',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: antiguedadCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Antigüedad',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: puestoCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Puesto',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -105,12 +123,16 @@ class _FormularioAsociadosScreenState
           ElevatedButton(
             onPressed: () async {
               final nombre = nombreCtrl.text.trim();
+              final antiguedad = antiguedadCtrl.text.trim();
+              final puesto = puestoCtrl.text.trim();
               if (nombre.isEmpty) return;
 
               final nuevo = AsociadoEvaluacion(
                 id: const Uuid().v4(),
                 nombreCompleto: nombre,
                 cargo: cargoSeleccionado,
+                antiguedad: antiguedad.isEmpty ? null : antiguedad,
+                puesto: puesto.isEmpty ? null : puesto,
                 evaluacionId: widget.evaluacionId,
               );
 
@@ -180,7 +202,7 @@ class _FormularioAsociadosScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      drawer: SizedBox(width: 300, child: const ChatWidgetDrawer()),
+      drawer: const SizedBox(width: 300, child: ChatWidgetDrawer()),
       appBar: AppBar(
         backgroundColor: const Color(0xFF003056),
         centerTitle: true,

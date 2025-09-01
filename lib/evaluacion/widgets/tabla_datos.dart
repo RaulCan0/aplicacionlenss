@@ -80,15 +80,15 @@ class TablaDatosEvaluacionWidget extends StatelessWidget {
         rows.add(DataRow(cells: [
           DataCell(Text(principio)),
           DataCell(Text(comportamiento)),
-          DataCell(Text('')),
-          DataCell(Text('')),
-          DataCell(Text('')),
-          DataCell(Text('')),
-          DataCell(Text('')),
-          DataCell(Text('')),
-          DataCell(Text('')),
-          DataCell(Text('')),
-          DataCell(Text('')),
+          const DataCell(Text('')),
+          const DataCell(Text('')),
+          const DataCell(Text('')),
+          const DataCell(Text('')),
+          const DataCell(Text('')),
+          const DataCell(Text('')),
+          const DataCell(Text('')),
+          const DataCell(Text('')),
+          const DataCell(Text('')),
         ]));
       }
     }

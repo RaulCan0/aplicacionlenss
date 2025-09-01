@@ -8,11 +8,11 @@ class IcoButtonMenuReportes extends StatelessWidget {
     @override
     Widget build(BuildContext context) {
         return PopupMenuButton<String>(
-            icon: Icon(Icons.insert_drive_file, size: 32),
+            icon: const Icon(Icons.insert_drive_file, size: 32),
             tooltip: 'SELECCIONA EL FORMATO DEL REPORTE',
             onSelected: onSelected,
             itemBuilder: (context) => [
-                PopupMenuItem(
+                const PopupMenuItem(
                     value: 'Reporte en formato WORD',
                     child: Row(
                         children: [
@@ -22,7 +22,7 @@ class IcoButtonMenuReportes extends StatelessWidget {
                         ],
                     ),
                 ),
-                PopupMenuItem(
+                const PopupMenuItem(
                     value: 'Reporte en formato PDF',
                     child: Row(
                         children: [
@@ -32,7 +32,7 @@ class IcoButtonMenuReportes extends StatelessWidget {
                         ],
                     ),
                 ),
-                PopupMenuItem(
+                const PopupMenuItem(
                     value: 'Reporte en formato EXCEL',
                     child: Row(
                         children: [

@@ -185,7 +185,7 @@ class _DashboardView extends ConsumerWidget {
                       children: [
                         Text(
                           user?.email ?? 'Sin email',
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
